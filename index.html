@@ -39,7 +39,7 @@ footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer st
 <div class="wrap">
 <header class="top"><div class="brand"><div class="logo">♛</div><div><h1>Sai PARTY ROYAL</h1><small>AWARDS • 2026</small></div></div><div class="pill">✦ تصويت المجتمع</div></header>
 <section class="hero"><div class="eyebrow">جوائز الإدارة</div><h2>من يستحق لقب <span>أفضل إداري؟</span></h2><p>اختر الإدارة، ثم صوّت للشخص الذي ترى أنه يستحق التقدير على نشاطه وتعامله ومساعدته للأعضاء.</p></section>
-<div class="notice">تنبيه: النموذج الحالي واجهة جاهزة للمعاينة. لتسجيل الأصوات فعليًا لجميع الزوار، اتبع تعليمات ربط قاعدة البيانات في ملف README.</div>
+<div class="notice">التصويت والنتائج مرتبطان بقاعدة البيانات المشتركة. سجّل الدخول كزائر للتصويت مرة واحدة لكل إدارة.</div>
 <div class="section-title">اختر الإدارة</div>
 <div class="departments" id="departments"></div>
 <section class="panel">
@@ -59,18 +59,54 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 const departments = [
- {id:"general",name:"الإدارة العامة",desc:"أفضل إداري في الإدارة العامة",icon:"♜",people:["انس","Faz","Bad","lllsaen-","M-iyf","78","Solz!","Yrdr-","BeyondTheSilence"]},
- {id:"girls",name:"إدارة البنات",desc:"أفضل إدارية",icon:"✦",people:["جودي","مسك","جنوبية","قمر","سارة","ريو","ويفل","رورو"]},
- {id:"didos",name:"إدارة الديدوس",desc:"أفضل إداري في القسم",icon:"♟",people:["ديف","سونق","عواففي","عذاب الحربي","نواف","انتظرها","ابو قحط"]}
+ {id:"general",name:"الإدارة العامة",desc:"أفضل إداري في الإدارة العامة",icon:"♜"},
+ {id:"girls",name:"إدارة البنات",desc:"أفضل إدارية",icon:"✦"},
+ {id:"didos",name:"إدارة الديدوس",desc:"أفضل إداري في القسم",icon:"♟"}
 ];
-let active="general", selected=null;
+let active="general", selected=null, candidates=[], loading=false;
 const $=id=>document.getElementById(id);
-function renderDepartments(){ $("departments").innerHTML=departments.map(d=>`<button class="dept ${d.id===active?"active":""}" data-id="${d.id}"><span class="arrow">‹</span><span class="emoji">${d.icon}</span><h3>${d.name}</h3><p>${d.desc}</p></button>`).join("");document.querySelectorAll(".dept").forEach(b=>b.onclick=()=>{active=b.dataset.id;selected=null;renderDepartments();renderCandidates();$("results").style.display="none";$("status").textContent="اختر أحد المرشحين للمتابعة."})}
-function renderCandidates(){const d=departments.find(x=>x.id===active);$("listTitle").textContent=d.name;$("candidateCount").textContent=d.people.length+" مرشحين";$("candidates").innerHTML=d.people.map((n,i)=>`<button class="candidate ${selected===n?"selected":""}" data-name="${encodeURIComponent(n)}"><span class="avatar">${n.trim().slice(0,1).toUpperCase()}</span><span style="text-align:right;min-width:0"><span class="name">${escapeHtml(n)}</span><br><span class="sub">مرشح ${String(i+1).padStart(2,"0")}</span></span><span class="radio"></span></button>`).join("");document.querySelectorAll(".candidate").forEach(b=>b.onclick=()=>{selected=decodeURIComponent(b.dataset.name);renderCandidates();$("voteBtn").disabled=false;$("status").textContent="تم اختيار "+selected+" — أكّد اختيارك عند الجاهزية."});$("voteBtn").disabled=!selected}
-function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-$("voteBtn").onclick=()=>{if(!selected)return;const key="partyRoyalDemoVotes";const all=JSON.parse(localStorage.getItem(key)||"{}");const voterKey="partyRoyalDemoVoted_"+active;if(localStorage.getItem(voterKey)){ $("status").textContent="هذا المتصفح سجّل تصويتًا تجريبيًا لهذه الإدارة مسبقًا.";return}all[active]=all[active]||{};all[active][selected]=(all[active][selected]||0)+1;localStorage.setItem(key,JSON.stringify(all));localStorage.setItem(voterKey,"1");$("status").textContent="تم حفظ تصويت تجريبي على هذا الجهاز فقط. ليس تصويتًا عامًا بعد.";selected=null;renderCandidates()};
-$("resultsBtn").onclick=()=>{const all=JSON.parse(localStorage.getItem("partyRoyalDemoVotes")||"{}");const d=departments.find(x=>x.id===active);const scores=all[active]||{};const total=Object.values(scores).reduce((a,b)=>a+b,0);$("results").style.display="block";$("results").innerHTML=`<h3>النتائج التجريبية — ${d.name}</h3><p style="color:#aaa;font-size:12px">هذه النتائج محفوظة على جهازك فقط.</p>`+d.people.map(n=>{let v=scores[n]||0;return `<div class="result-row"><div class="result-top"><span>${escapeHtml(n)}</span><span>${v} صوت · ${total?Math.round(v/total*100):0}%</span></div><div class="bar"><span style="width:${total?v/total*100:0}%"></span></div></div>`}).join("")};
-renderDepartments();renderCandidates();
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderDepartments(){
+  $("departments").innerHTML=departments.map(d=>`<button class="dept ${d.id===active?"active":""}" data-id="${d.id}"><span class="arrow">‹</span><span class="emoji">${d.icon}</span><h3>${d.name}</h3><p>${d.desc}</p></button>`).join("");
+  document.querySelectorAll(".dept").forEach(b=>b.onclick=async()=>{active=b.dataset.id;selected=null;renderDepartments();$("results").style.display="none";await loadCandidates()});
+}
+async function loadCandidates(){
+  selected=null; $("voteBtn").disabled=true; $("candidates").innerHTML="";
+  $("status").textContent="جاري تحميل المرشحين من قاعدة البيانات…";
+  const d=departments.find(x=>x.id===active); $("listTitle").textContent=d.name;
+  const {data,error}=await supabaseClient.from("candidates").select("id,display_name,department_id").eq("department_id",active).order("id");
+  if(error){$("candidateCount").textContent="تعذّر التحميل";$("status").textContent="تعذّر تحميل المرشحين: "+error.message;return}
+  candidates=data||[]; $("candidateCount").textContent=candidates.length+" مرشحين";
+  if(!candidates.length){$("status").textContent="ما فيه مرشحين مسجلين لهذه الإدارة في جدول candidates. أضفهم في Supabase أولًا.";return}
+  $("status").textContent="اختر أحد المرشحين للمتابعة.";
+  $("candidates").innerHTML=candidates.map((c,i)=>`<button class="candidate ${selected===String(c.id)?"selected":""}" data-id="${c.id}"><span class="avatar">${escapeHtml((c.display_name||"?").trim().slice(0,1).toUpperCase())}</span><span style="text-align:right;min-width:0"><span class="name">${escapeHtml(c.display_name)}</span><br><span class="sub">مرشح ${String(i+1).padStart(2,"0")}</span></span><span class="radio"></span></button>`).join("");
+  document.querySelectorAll(".candidate").forEach(b=>b.onclick=()=>{selected=b.dataset.id;document.querySelectorAll(".candidate").forEach(x=>x.classList.toggle("selected",x.dataset.id===selected));$("voteBtn").disabled=false;const c=candidates.find(x=>String(x.id)===selected);$("status").textContent="تم اختيار "+c.display_name+" — أكّد اختيارك عند الجاهزية."});
+}
+$("voteBtn").onclick=async()=>{
+  if(!selected||loading)return; loading=true;$("voteBtn").disabled=true;$("status").textContent="جاري تسجيل التصويت…";
+  try{
+    let {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+    if(sessionError) throw sessionError;
+    if(!session){const sign=await supabaseClient.auth.signInAnonymously();if(sign.error)throw sign.error;}
+    const {error}=await supabaseClient.rpc("cast_vote",{p_department_id:active,p_candidate_id:Number(selected)});
+    if(error){
+      if(/duplicate|unique|already|votes_one_per_department/i.test(error.message)) $("status").textContent="سبق وصوّت لهذه الإدارة من هذا الحساب.";
+      else $("status").textContent="ما تم تسجيل التصويت: "+error.message;
+      return;
+    }
+    $("status").textContent="تم تسجيل صوتك بنجاح!"; selected=null; await loadCandidates(); await showResults();
+  }catch(e){$("status").textContent="تعذّر التصويت: "+(e.message||e)}finally{loading=false;$("voteBtn").disabled=!selected}
+};
+async function showResults(){
+  const box=$("results");box.style.display="block";box.innerHTML="<p style='color:#aaa'>جاري تحميل النتائج…</p>";
+  const d=departments.find(x=>x.id===active);
+  const {data,error}=await supabaseClient.rpc("get_vote_results",{p_department_id:active});
+  if(error){box.innerHTML=`<h3>نتائج ${d.name}</h3><p style="color:#ff9ba3">تعذّر تحميل النتائج: ${escapeHtml(error.message)}. تأكد من إنشاء دالة get_vote_results في SQL Editor.</p>`;return}
+  const rows=data||[],total=rows.reduce((sum,r)=>sum+Number(r.vote_count||0),0);
+  box.innerHTML=`<h3>النتائج الحالية — ${d.name}</h3><p style="color:#aaa;font-size:12px">نتائج مشتركة من قاعدة البيانات · إجمالي الأصوات: ${total}</p>`+rows.map(r=>{const v=Number(r.vote_count||0),pct=total?Math.round(v/total*100):0;return `<div class="result-row"><div class="result-top"><span>${escapeHtml(r.candidate_name)}</span><span>${v} صوت · ${pct}%</span></div><div class="bar"><span style="width:${pct}%"></span></div></div>`}).join("");
+}
+$("resultsBtn").onclick=showResults;
+renderDepartments();loadCandidates();
 </script>
 </body>
 </html>
