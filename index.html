@@ -51,6 +51,13 @@ footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer st
 <footer><strong>PARTY ROYAL</strong> · جوائز المجتمع · صوّت بمسؤولية واحترام</footer>
 </div>
 <script>
+ const SUPABASE_URL ="https://visjiarfayedjuxhjufn.supabase.co";
+const SUPABASE_KEY =  "sb_publishable_M2UKTDgPeqrlwDKab3Ki3g_MRvMDQIg;
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 const departments = [
  {id:"general",name:"الإدارة العامة",desc:"أفضل إداري في الإدارة العامة",icon:"♜",people:["انس","Faz","Bad","lllsaen-","M-iyf","78","Solz!","Yrdr-","BeyondTheSilence"]},
  {id:"girls",name:"إدارة البنات",desc:"أفضل إدارية",icon:"✦",people:["جودي","مسك","جنوبية","قمر","سارة","ريو","ويفل","رورو"]},
