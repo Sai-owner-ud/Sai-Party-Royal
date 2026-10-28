@@ -94,7 +94,7 @@ $("voteBtn").onclick=async()=>{
   $("status").textContent = "تعذّر تسجيل التصويت: " + error.message;
   return;
 }
-    }
+    
     $("status").textContent="تم تسجيل صوتك بنجاح!"; selected=null; await loadCandidates(); await showResults();
   }catch(e){$("status").textContent="تعذّر التصويت: "+(e.message||e)}finally{loading=false;$("voteBtn").disabled=!selected}
 };
