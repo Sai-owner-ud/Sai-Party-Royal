@@ -89,10 +89,11 @@ $("voteBtn").onclick=async()=>{
     if(sessionError) throw sessionError;
     if(!session){const sign=await supabaseClient.auth.signInAnonymously();if(sign.error)throw sign.error;}
     const {error}=await supabaseClient.rpc("cast_vote",{p_department_id:active,p_candidate_id:Number(selected)});
-    if(error){
-      if(/duplicate|unique|already|votes_one_per_department/i.test(error.message)) $("status").textContent="سبق وصوّت لهذه الإدارة من هذا الحساب.";
-      else $("status").textContent="ما تم تسجيل التصويت: "+error.message;
-      return;
+    if (error) {
+  console.error("Vote error:", error);
+  $("status").textContent = "تعذّر تسجيل التصويت: " + error.message;
+  return;
+}
     }
     $("status").textContent="تم تسجيل صوتك بنجاح!"; selected=null; await loadCandidates(); await showResults();
   }catch(e){$("status").textContent="تعذّر التصويت: "+(e.message||e)}finally{loading=false;$("voteBtn").disabled=!selected}
