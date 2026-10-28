@@ -71,33 +71,79 @@ function renderDepartments(){
   document.querySelectorAll(".dept").forEach(b=>b.onclick=async()=>{active=b.dataset.id;selected=null;renderDepartments();$("results").style.display="none";await loadCandidates()});
 }
 async function loadCandidates(){
-  selected=null; $("voteBtn").disabled=true; $("candidates").innerHTML="";
+  selected=null;
+  $("voteBtn").disabled=true;
+  $("candidates").innerHTML="";
+  $("candidateCount").textContent="جاري التحميل…";
   $("status").textContent="جاري تحميل المرشحين من قاعدة البيانات…";
-  const d=departments.find(x=>x.id===active); $("listTitle").textContent=d.name;
-  const {data,error}=await supabaseClient.from("candidates").select("id,display_name,department_id").eq("department_id",active).order("id");
-  if(error){$("candidateCount").textContent="تعذّر التحميل";$("status").textContent="تعذّر تحميل المرشحين: "+error.message;return}
-  candidates=data||[]; $("candidateCount").textContent=candidates.length+" مرشحين";
-  if(!candidates.length){$("status").textContent="ما فيه مرشحين مسجلين لهذه الإدارة في جدول candidates. أضفهم في Supabase أولًا.";return}
-  $("status").textContent="اختر أحد المرشحين للمتابعة.";
-  $("candidates").innerHTML=candidates.map((c,i)=>`<button class="candidate ${selected===String(c.id)?"selected":""}" data-id="${c.id}"><span class="avatar">${escapeHtml((c.display_name||"?").trim().slice(0,1).toUpperCase())}</span><span style="text-align:right;min-width:0"><span class="name">${escapeHtml(c.display_name)}</span><br><span class="sub">مرشح ${String(i+1).padStart(2,"0")}</span></span><span class="radio"></span></button>`).join("");
-  document.querySelectorAll(".candidate").forEach(b=>b.onclick=()=>{selected=b.dataset.id;document.querySelectorAll(".candidate").forEach(x=>x.classList.toggle("selected",x.dataset.id===selected));$("voteBtn").disabled=false;const c=candidates.find(x=>String(x.id)===selected);$("status").textContent="تم اختيار "+c.display_name+" — أكّد اختيارك عند الجاهزية."});
+  const d=departments.find(x=>x.id===active);
+  $("listTitle").textContent=d.name;
+  try {
+    const {data,error}=await supabaseClient
+      .from("candidates")
+      .select("id,display_name,department_id")
+      .eq("department_id",active)
+      .order("id");
+    if(error) throw error;
+    candidates=data||[];
+    $("candidateCount").textContent=candidates.length+" مرشحين";
+    if(!candidates.length){
+      $("status").textContent="ما فيه مرشحين مسجلين لهذه الإدارة في جدول candidates. أضفهم في Supabase أولًا.";
+      return;
+    }
+    $("status").textContent="اختر أحد المرشحين للمتابعة.";
+    $("candidates").innerHTML=candidates.map((c,i)=>`<button type="button" class="candidate" data-id="${c.id}"><span class="avatar">${escapeHtml((c.display_name||"?").trim().slice(0,1).toUpperCase())}</span><span style="text-align:right;min-width:0"><span class="name">${escapeHtml(c.display_name||"بدون اسم")}</span><br><span class="sub">مرشح ${String(i+1).padStart(2,"0")}</span></span><span class="radio"></span></button>`).join("");
+    document.querySelectorAll(".candidate").forEach(b=>b.onclick=()=>{
+      selected=b.dataset.id;
+      document.querySelectorAll(".candidate").forEach(x=>x.classList.toggle("selected",x.dataset.id===selected));
+      $("voteBtn").disabled=false;
+      const c=candidates.find(x=>String(x.id)===selected);
+      $("status").textContent="تم اختيار "+(c?.display_name||"المرشح")+" — أكّد اختيارك عند الجاهزية.";
+    });
+  } catch(error) {
+    console.error("Candidate loading error:",error);
+    $("candidateCount").textContent="تعذّر التحميل";
+    $("status").textContent="تعذّر تحميل المرشحين: "+(error?.message||String(error));
+  }
 }
 $("voteBtn").onclick=async()=>{
-  if(!selected||loading)return; loading=true;$("voteBtn").disabled=true;$("status").textContent="جاري تسجيل التصويت…";
-  try{
-    let {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(!selected||loading)return;
+  loading=true;
+  $("voteBtn").disabled=true;
+  $("status").textContent="جاري تسجيل التصويت…";
+  try {
+    const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
     if(sessionError) throw sessionError;
-    if(!session){const sign=await supabaseClient.auth.signInAnonymously();if(sign.error)throw sign.error;}
-    const {error}=await supabaseClient.rpc("cast_vote",{p_department_id:active,p_candidate_id:Number(selected)});
-    if (error) {
-  console.error("Vote error:", error);
-  $("status").textContent = "تعذّر تسجيل التصويت: " + error.message;
-  return;
-}
-    
-    $("status").textContent="تم تسجيل صوتك بنجاح!"; selected=null; await loadCandidates(); await showResults();
-  }catch(e){$("status").textContent="تعذّر التصويت: "+(e.message||e)}finally{loading=false;$("voteBtn").disabled=!selected}
+    if(!session){
+      const sign=await supabaseClient.auth.signInAnonymously();
+      if(sign.error) throw sign.error;
+    }
+    const {error}=await supabaseClient.rpc("cast_vote",{
+      p_department_id:active,
+      p_candidate_id:Number(selected)
+    });
+    if(error){
+      console.error("Vote error:",error);
+      if(/duplicate|unique|already|votes_one_per_department/i.test(error.message||"")){
+        $("status").textContent="سبق وصوّت لهذه الإدارة من هذا الحساب.";
+      } else {
+        $("status").textContent="تعذّر تسجيل التصويت: "+(error.message||String(error));
+      }
+      return;
+    }
+    $("status").textContent="تم تسجيل صوتك بنجاح!";
+    selected=null;
+    await loadCandidates();
+    await showResults();
+  } catch(e) {
+    console.error("Vote exception:",e);
+    $("status").textContent="تعذّر التصويت: "+(e?.message||String(e));
+  } finally {
+    loading=false;
+    $("voteBtn").disabled=!selected;
+  }
 };
+
 async function showResults(){
   const box=$("results");box.style.display="block";box.innerHTML="<p style='color:#aaa'>جاري تحميل النتائج…</p>";
   const d=departments.find(x=>x.id===active);
