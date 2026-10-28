@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111111">
+<title>PARTY ROYAL | تصويت أفضل إداري</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0b0d;--panel:#151518;--panel2:#1c1c21;--red:#e11d2e;--red2:#ff3d4d;--muted:#a6a6b0;--line:#303037;--white:#f8f8fb}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#291014 0,#0b0b0d 48%);color:var(--white);font-family:Cairo,system-ui,sans-serif;min-height:100vh}
+.wrap{width:min(1080px,92%);margin:auto}.top{padding:28px 0 18px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,var(--red2),#8c0713);display:grid;place-items:center;font-size:25px;box-shadow:0 8px 28px #e11d2e35}
+.brand h1{font-size:20px;line-height:1.2;margin:0;font-weight:900;letter-spacing:1px}.brand small{color:#ff6874;font-weight:700}
+.pill{border:1px solid #61232a;color:#ff9ba3;background:#291216;padding:7px 12px;border-radius:999px;font-size:12px}
+.hero{text-align:center;padding:28px 0 24px}.eyebrow{color:#ff6874;font-weight:800;font-size:13px;letter-spacing:.4px}.hero h2{font-size:clamp(28px,5vw,48px);line-height:1.25;margin:8px 0 12px;font-weight:900}.hero h2 span{color:var(--red2)}.hero p{color:var(--muted);margin:0 auto;max-width:640px}
+.notice{margin:18px auto 24px;max-width:800px;background:#171114;border:1px solid #57212a;border-radius:14px;padding:12px 16px;color:#f5c8cc;font-size:13px}
+.section-title{display:flex;align-items:center;gap:10px;margin:26px 0 14px;font-size:20px;font-weight:900}.section-title:before{content:"";height:25px;width:4px;border-radius:4px;background:var(--red)}
+.departments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.dept{border:1px solid var(--line);background:linear-gradient(145deg,#1a1a1f,#111114);border-radius:18px;padding:20px;text-align:right;cursor:pointer;transition:.18s;color:var(--white);font:inherit}
+.dept:hover,.dept.active{border-color:var(--red);transform:translateY(-2px);box-shadow:0 10px 35px #e11d2e12}.dept.active{background:linear-gradient(145deg,#311319,#151518)}
+.dept .emoji{font-size:25px}.dept h3{margin:9px 0 3px;font-size:18px}.dept p{margin:0;color:var(--muted);font-size:12px}.dept .arrow{float:left;color:var(--red2);font-size:20px}
+.panel{margin:18px 0 44px;border:1px solid var(--line);background:#121215;border-radius:20px;overflow:hidden}
+.panel-head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.panel-head h3{margin:0;font-size:20px}.panel-head p{margin:3px 0 0;color:var(--muted);font-size:13px}
+.count{color:#ff929b;background:#291216;border:1px solid #57212a;padding:6px 10px;border-radius:9px;font-size:12px}
+.candidates{padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.candidate{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #303037;border-radius:13px;background:#19191e;cursor:pointer;transition:.15s;min-width:0}
+.candidate:hover{border-color:#9b3039}.candidate.selected{border-color:var(--red);background:#2a1318;box-shadow:inset 0 0 0 1px #e11d2e30}
+.avatar{flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3a2025,#24242b);display:grid;place-items:center;font-weight:900;color:#ff8a94;font-size:16px}
+.candidate .name{font-weight:800;overflow-wrap:anywhere}.candidate .sub{font-size:11px;color:var(--muted)}.radio{margin-right:auto;flex:0 0 19px;height:19px;border:1px solid #65656e;border-radius:50%;display:grid;place-items:center}.selected .radio{border-color:var(--red);background:var(--red)}.selected .radio:after{content:"✓";font-size:12px;color:white}
+.actions{padding:0 16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:12px 20px;font:inherit;font-weight:900;cursor:pointer}.primary{background:linear-gradient(135deg,var(--red2),#b90c1c);color:white;box-shadow:0 8px 20px #e11d2e25}.primary:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#222228;color:#ddd;border:1px solid #393940}.status{color:var(--muted);font-size:12px}
+.results{padding:16px;display:none}.result-row{margin-bottom:14px}.result-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:6px}.bar{height:8px;background:#2a2a31;border-radius:20px;overflow:hidden}.bar span{height:100%;display:block;background:linear-gradient(90deg,#a90b1a,#ff4656);border-radius:20px;width:0}
+footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer strong{color:#aaa}
+@media(max-width:700px){.departments{grid-template-columns:1fr}.dept{padding:15px}.candidates{grid-template-columns:1fr}.top{align-items:flex-start}.pill{display:none}.hero{padding-top:18px}.panel-head{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="brand"><div class="logo">♛</div><div><h1>PARTY ROYAL</h1><small>AWARDS • 2026</small></div></div><div class="pill">✦ تصويت المجتمع</div></header>
+<section class="hero"><div class="eyebrow">جوائز الإدارة</div><h2>من يستحق لقب <span>أفضل إداري؟</span></h2><p>اختر الإدارة، ثم صوّت للشخص الذي ترى أنه يستحق التقدير على نشاطه وتعامله ومساعدته للأعضاء.</p></section>
+<div class="notice">تنبيه: النموذج الحالي واجهة جاهزة للمعاينة. لتسجيل الأصوات فعليًا لجميع الزوار، اتبع تعليمات ربط قاعدة البيانات في ملف README.</div>
+<div class="section-title">اختر الإدارة</div>
+<div class="departments" id="departments"></div>
+<section class="panel">
+<div class="panel-head"><div><h3 id="listTitle">الإدارة العامة</h3><p>اختر اسمًا واحدًا فقط ثم اضغط «تأكيد التصويت».</p></div><div class="count" id="candidateCount">9 مرشحين</div></div>
+<div class="candidates" id="candidates"></div>
+<div class="actions"><button class="btn primary" id="voteBtn" disabled>تأكيد التصويت</button><button class="btn secondary" id="resultsBtn">عرض النتائج</button><span class="status" id="status" aria-live="polite">اختر أحد المرشحين للمتابعة.</span></div>
+<div class="results" id="results"></div>
+</section>
+<footer><strong>PARTY ROYAL</strong> · جوائز المجتمع · صوّت بمسؤولية واحترام</footer>
+</div>
+<script>
+const departments = [
+ {id:"general",name:"الإدارة العامة",desc:"أفضل إداري في الإدارة العامة",icon:"♜",people:["انس","Faz","Bad","lllsaen-","M-iyf","78","Solz!","Yrdr-","BeyondTheSilence"]},
+ {id:"girls",name:"إدارة البنات",desc:"أفضل إدارية",icon:"✦",people:["جودي","مسك","جنوبية","قمر","سارة","ريو","ويفل","رورو"]},
+ {id:"didos",name:"إدارة الديدوس",desc:"أفضل إداري في القسم",icon:"♟",people:["ديف","سونق","عواففي","عذاب الحربي","نواف","انتظرها","ابو قحط"]}
+];
+let active="general", selected=null;
+const $=id=>document.getElementById(id);
+function renderDepartments(){ $("departments").innerHTML=departments.map(d=>`<button class="dept ${d.id===active?"active":""}" data-id="${d.id}"><span class="arrow">‹</span><span class="emoji">${d.icon}</span><h3>${d.name}</h3><p>${d.desc}</p></button>`).join("");document.querySelectorAll(".dept").forEach(b=>b.onclick=()=>{active=b.dataset.id;selected=null;renderDepartments();renderCandidates();$("results").style.display="none";$("status").textContent="اختر أحد المرشحين للمتابعة."})}
+function renderCandidates(){const d=departments.find(x=>x.id===active);$("listTitle").textContent=d.name;$("candidateCount").textContent=d.people.length+" مرشحين";$("candidates").innerHTML=d.people.map((n,i)=>`<button class="candidate ${selected===n?"selected":""}" data-name="${encodeURIComponent(n)}"><span class="avatar">${n.trim().slice(0,1).toUpperCase()}</span><span style="text-align:right;min-width:0"><span class="name">${escapeHtml(n)}</span><br><span class="sub">مرشح ${String(i+1).padStart(2,"0")}</span></span><span class="radio"></span></button>`).join("");document.querySelectorAll(".candidate").forEach(b=>b.onclick=()=>{selected=decodeURIComponent(b.dataset.name);renderCandidates();$("voteBtn").disabled=false;$("status").textContent="تم اختيار "+selected+" — أكّد اختيارك عند الجاهزية."});$("voteBtn").disabled=!selected}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("voteBtn").onclick=()=>{if(!selected)return;const key="partyRoyalDemoVotes";const all=JSON.parse(localStorage.getItem(key)||"{}");const voterKey="partyRoyalDemoVoted_"+active;if(localStorage.getItem(voterKey)){ $("status").textContent="هذا المتصفح سجّل تصويتًا تجريبيًا لهذه الإدارة مسبقًا.";return}all[active]=all[active]||{};all[active][selected]=(all[active][selected]||0)+1;localStorage.setItem(key,JSON.stringify(all));localStorage.setItem(voterKey,"1");$("status").textContent="تم حفظ تصويت تجريبي على هذا الجهاز فقط. ليس تصويتًا عامًا بعد.";selected=null;renderCandidates()};
+$("resultsBtn").onclick=()=>{const all=JSON.parse(localStorage.getItem("partyRoyalDemoVotes")||"{}");const d=departments.find(x=>x.id===active);const scores=all[active]||{};const total=Object.values(scores).reduce((a,b)=>a+b,0);$("results").style.display="block";$("results").innerHTML=`<h3>النتائج التجريبية — ${d.name}</h3><p style="color:#aaa;font-size:12px">هذه النتائج محفوظة على جهازك فقط.</p>`+d.people.map(n=>{let v=scores[n]||0;return `<div class="result-row"><div class="result-top"><span>${escapeHtml(n)}</span><span>${v} صوت · ${total?Math.round(v/total*100):0}%</span></div><div class="bar"><span style="width:${total?v/total*100:0}%"></span></div></div>`}).join("")};
+renderDepartments();renderCandidates();
+</script>
+</body>
+</html>
