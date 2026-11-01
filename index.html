@@ -201,8 +201,7 @@ $("voteBtn").addEventListener("click", async () => {
         throw signInError;
       }
       $("captcha-container").style.display = "none";
-      $("status").textContent = "نجح التحقق وإنشاء جلسة الزائر. لم يتم تسجيل أي صوت؛ اضغط مرة ثانية فقط إذا كنت تريد التصويت.";
-      return;
+      $("status").textContent = "تم التحقق وإنشاء جلسة الزائر، جاري تسجيل التصويت…";
     }
     const { error } = await supabaseClient.rpc("cast_vote", {
       p_department_id: active,
