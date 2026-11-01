@@ -28,7 +28,7 @@
 .candidate:hover{border-color:#9b3039}.candidate.selected{border-color:var(--red);background:#2a1318;box-shadow:inset 0 0 0 1px #e11d2e30}
 .avatar{flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#3a2025,#24242b);display:grid;place-items:center;font-weight:900;color:#ff8a94;font-size:16px}
 .candidate .name{font-weight:800;overflow-wrap:anywhere;color:#ffffff}.candidate .sub{font-size:11px;color:var(--muted)}.radio{margin-right:auto;flex:0 0 19px;height:19px;border:1px solid #65656e;border-radius:50%;display:grid;place-items:center}.selected .radio{border-color:var(--red);background:var(--red)}.selected .radio:after{content:"✓";font-size:12px;color:white}
-.actions{padding:0 16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.btn{border:0;border-radius:12px;padding:12px 20px;font:inherit;font-weight:900;cursor:pointer}.primary{background:linear-gradient(135deg,var(--red2),#b90c1c);color:white;box-shadow:0 8px 20px #e11d2e25}.primary:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#222228;color:#ddd;border:1px solid #393940}.status{color:var(--muted);font-size:12px}
+.actions{padding:0 16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}#captcha-container{display:none;width:100%;min-height:0}.btn{border:0;border-radius:12px;padding:12px 20px;font:inherit;font-weight:900;cursor:pointer}.primary{background:linear-gradient(135deg,var(--red2),#b90c1c);color:white;box-shadow:0 8px 20px #e11d2e25}.primary:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#222228;color:#ddd;border:1px solid #393940}.status{color:var(--muted);font-size:12px}
 .results{padding:16px;display:none}.result-row{margin-bottom:14px}.result-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:6px}.bar{height:8px;background:#2a2a31;border-radius:20px;overflow:hidden}.bar span{height:100%;display:block;background:linear-gradient(90deg,#a90b1a,#ff4656);border-radius:20px;width:0}
 footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer strong{color:#aaa}
 @media(max-width:700px){.departments{grid-template-columns:1fr}.dept{padding:15px}.candidates{grid-template-columns:1fr}.top{align-items:flex-start}.pill{display:none}.hero{padding-top:18px}.panel-head{padding:16px}}
@@ -45,7 +45,7 @@ footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer st
 <section class="panel">
 <div class="panel-head"><div><h3 id="listTitle">الإدارة العامة</h3><p>اختر اسمًا واحدًا فقط ثم اضغط «تأكيد التصويت».</p></div><div class="count" id="candidateCount">9 مرشحين</div></div>
 <div class="candidates" id="candidates"></div>
-<div class="actions"><button class="btn primary" id="voteBtn" disabled>تأكيد التصويت</button><button class="btn secondary" id="resultsBtn">عرض النتائج</button><span class="status" id="status" aria-live="polite">اختر أحد المرشحين للمتابعة.</span></div>
+<div class="actions"><button class="btn primary" id="voteBtn" disabled>تأكيد التصويت</button><button class="btn secondary" id="resultsBtn">عرض النتائج</button><div id="captcha-container" aria-live="polite"></div><span class="status" id="status" aria-live="polite">اختر أحد المرشحين للمتابعة.</span></div>
 <div class="results" id="results"></div>
 </section>
 <footer><strong>PARTY ROYAL</strong> · تطوير وتصميم <strong>عوافي</strong> © 2026<br><span>صُنع بكل شغف لمجتمع SAI ❤️‍🔥</span></footer>
@@ -54,6 +54,48 @@ footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer st
  const SUPABASE_URL = "https://visjiarfayedjuxhjufn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_M2UKTDgPeqrlwDKab3Ki3g_MRvMDQIg";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const TURNSTILE_SITE_KEY = "0x4AAAAAAFvL1yWda1K5COC2";
+let turnstileWidgetId = null;
+let turnstileScriptPromise = null;
+
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (!turnstileScriptPromise) {
+    turnstileScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => window.turnstile ? resolve(window.turnstile) : reject(new Error("تعذّر تحميل Cloudflare Turnstile"));
+      script.onerror = () => reject(new Error("تعذّر تحميل خدمة التحقق"));
+      document.head.appendChild(script);
+    });
+  }
+  return turnstileScriptPromise;
+}
+
+async function getTurnstileToken() {
+  const turnstile = await loadTurnstile();
+  const container = $("captcha-container");
+  container.style.display = "block";
+  $("status").textContent = "تحقق من أنك لست روبوتًا لإكمال التصويت…";
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: token => resolve(token),
+      "expired-callback": () => reject(new Error("انتهت صلاحية التحقق، حاول مرة أخرى")),
+      "error-callback": () => reject(new Error("تعذّر إكمال التحقق، حاول مرة أخرى"))
+    };
+
+    if (turnstileWidgetId === null) {
+      turnstileWidgetId = turnstile.render("#captcha-container", options);
+    } else {
+      turnstile.reset(turnstileWidgetId);
+      turnstile.execute(turnstileWidgetId);
+    }
+  });
+}
 
 const departments = [
   { id: "general", name: "الإدارة العامة", desc: "أفضل إداري في الإدارة العامة", icon: "♜" },
@@ -150,8 +192,15 @@ $("voteBtn").addEventListener("click", async () => {
     const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError) throw sessionError;
     if (!sessionData.session) {
-      const { error: signInError } = await supabaseClient.auth.signInAnonymously();
-      if (signInError) throw signInError;
+      const captchaToken = await getTurnstileToken();
+      const { error: signInError } = await supabaseClient.auth.signInAnonymously({
+        options: { captchaToken }
+      });
+      if (signInError) {
+        if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
+        throw signInError;
+      }
+      $("captcha-container").style.display = "none";
     }
     const { error } = await supabaseClient.rpc("cast_vote", {
       p_department_id: active,
