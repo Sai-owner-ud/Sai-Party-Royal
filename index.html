@@ -57,6 +57,8 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TURNSTILE_SITE_KEY = "0x4AAAAAAFvL1yWda1K5COC2";
 let turnstileWidgetId = null;
 let turnstileScriptPromise = null;
+let turnstileResolve = null;
+let turnstileReject = null;
 
 function loadTurnstile() {
   if (window.turnstile) return Promise.resolve(window.turnstile);
@@ -81,18 +83,43 @@ async function getTurnstileToken() {
   $("status").textContent = "تحقق من أنك لست روبوتًا لإكمال التصويت…";
 
   return new Promise((resolve, reject) => {
+    turnstileResolve = resolve;
+    turnstileReject = reject;
+
     const options = {
       sitekey: TURNSTILE_SITE_KEY,
-      callback: token => resolve(token),
-      "expired-callback": () => reject(new Error("انتهت صلاحية التحقق، حاول مرة أخرى")),
-      "error-callback": () => reject(new Error("تعذّر إكمال التحقق، حاول مرة أخرى"))
+      execution: "execute",
+      callback: token => {
+        const done = turnstileResolve;
+        turnstileResolve = null;
+        turnstileReject = null;
+        if (done) done(token);
+      },
+      "expired-callback": () => {
+        const fail = turnstileReject;
+        turnstileResolve = null;
+        turnstileReject = null;
+        if (fail) fail(new Error("انتهت صلاحية التحقق، حاول مرة أخرى"));
+      },
+      "error-callback": () => {
+        const fail = turnstileReject;
+        turnstileResolve = null;
+        turnstileReject = null;
+        if (fail) fail(new Error("تعذّر إكمال التحقق، حاول مرة أخرى"));
+      }
     };
 
-    if (turnstileWidgetId === null) {
-      turnstileWidgetId = turnstile.render("#captcha-container", options);
-    } else {
-      turnstile.reset(turnstileWidgetId);
+    try {
+      if (turnstileWidgetId === null) {
+        turnstileWidgetId = turnstile.render("#captcha-container", options);
+      } else {
+        turnstile.reset(turnstileWidgetId);
+      }
       turnstile.execute(turnstileWidgetId);
+    } catch (error) {
+      turnstileResolve = null;
+      turnstileReject = null;
+      reject(error);
     }
   });
 }
@@ -192,30 +219,40 @@ $("voteBtn").addEventListener("click", async () => {
     const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError) throw sessionError;
     if (!sessionData.session) {
-      const captchaToken = await getTurnstileToken();
+      const signInCaptchaToken = await getTurnstileToken();
       const { error: signInError } = await supabaseClient.auth.signInAnonymously({
-        options: { captchaToken }
+        options: { captchaToken: signInCaptchaToken }
       });
       if (signInError) {
         if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
         throw signInError;
       }
-      $("captcha-container").style.display = "none";
-      $("status").textContent = "تم التحقق وإنشاء جلسة الزائر، جاري تسجيل التصويت…";
     }
-    const { error } = await supabaseClient.rpc("cast_vote", {
-      p_department_id: active,
-      p_candidate_id: Number(selected)
+
+    // Turnstile tokens are single-use, so get a fresh token for this vote.
+    const voteCaptchaToken = await getTurnstileToken();
+    const { data, error } = await supabaseClient.functions.invoke("cast-vote", {
+      body: {
+        department_id: active,
+        candidate_id: Number(selected),
+        captcha_token: voteCaptchaToken
+      }
     });
-    if (error) {
-      console.error("Vote error:", error);
-      if (/duplicate|unique|already|votes_one_per_department/i.test(error.message || "")) {
+
+    if (error || !data?.success) {
+      console.error("Vote error:", error || data);
+      const message = error?.message || data?.error || "تعذّر تسجيل التصويت";
+      if (
+        error?.context?.status === 409 ||
+        /duplicate|unique|already voted|سبق وصوّت/i.test(message)
+      ) {
         $("status").textContent = "سبق وصوّت لهذه الإدارة من هذا الحساب.";
       } else {
-        $("status").textContent = `تعذّر تسجيل التصويت: ${error.message || String(error)}`;
+        $("status").textContent = `تعذّر تسجيل التصويت: ${message}`;
       }
       return;
     }
+    $("captcha-container").style.display = "none";
     selected = null;
     $("status").textContent = "تم تسجيل صوتك بنجاح!";
     await loadCandidates();
