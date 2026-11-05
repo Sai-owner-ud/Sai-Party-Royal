@@ -14,7 +14,7 @@
 .brand h1{font-size:20px;line-height:1.2;margin:0;font-weight:900;letter-spacing:1px}.brand small{color:#ff6874;font-weight:700}
 .pill{border:1px solid #61232a;color:#ff9ba3;background:#291216;padding:7px 12px;border-radius:999px;font-size:12px}
 .hero{text-align:center;padding:28px 0 24px}.eyebrow{color:#ff6874;font-weight:800;font-size:13px;letter-spacing:.4px}.hero h2{font-size:clamp(28px,5vw,48px);line-height:1.25;margin:8px 0 12px;font-weight:900}.hero h2 span{color:var(--red2)}.hero p{color:var(--muted);margin:0 auto;max-width:640px}
-.notice{margin:18px auto 24px;max-width:800px;background:#171114;border:1px solid #57212a;border-radius:14px;padding:12px 16px;color:#f5c8cc;font-size:13px}
+.closed-notice{margin:18px auto 24px;max-width:800px;background:#211317;border:1px solid #8f2633;border-radius:14px;padding:16px;color:#ffd9dd;text-align:center;font-weight:800}.closed-notice small{display:block;color:#d7aeb3;font-weight:600;margin-top:5px}.notice{margin:18px auto 24px;max-width:800px;background:#171114;border:1px solid #57212a;border-radius:14px;padding:12px 16px;color:#f5c8cc;font-size:13px}
 .section-title{display:flex;align-items:center;gap:10px;margin:26px 0 14px;font-size:20px;font-weight:900}.section-title:before{content:"";height:25px;width:4px;border-radius:4px;background:var(--red)}
 .departments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 .dept{border:1px solid var(--line);background:linear-gradient(145deg,#1a1a1f,#111114);border-radius:18px;padding:20px;text-align:right;cursor:pointer;transition:.18s;color:var(--white);font:inherit}
@@ -39,11 +39,11 @@ footer{text-align:center;color:#777782;font-size:12px;padding:0 0 30px}footer st
 <div class="wrap">
 <header class="top"><div class="brand"><div class="logo">♛</div><div><h1>Sai PARTY ROYAL</h1><small>AWARDS • 2026</small></div></div><div class="pill">✦ تصويت المجتمع</div></header>
 <section class="hero"><div class="eyebrow">جوائز الإدارة</div><h2>من يستحق لقب <span>أفضل إداري؟</span></h2><p>اختر الإدارة، ثم صوّت للشخص الذي ترى أنه يستحق التقدير على نشاطه وتعامله ومساعدته للأعضاء.</p></section>
-<div class="notice">التصويت والنتائج مرتبطان بقاعدة البيانات المشتركة. سجّل الدخول كزائر للتصويت مرة واحدة لكل إدارة.</div>
+<div class="closed-notice">🔒 تم إغلاق التصويت رسميًا<small>انتهت فترة التصويت، ويمكنكم الاطلاع على النتائج النهائية فقط.</small></div>
 <div class="section-title">اختر الإدارة</div>
 <div class="departments" id="departments"></div>
 <section class="panel">
-<div class="panel-head"><div><h3 id="listTitle">الإدارة العامة</h3><p>اختر اسمًا واحدًا فقط ثم اضغط «تأكيد التصويت».</p></div><div class="count" id="candidateCount">9 مرشحين</div></div>
+<div class="panel-head"><div><h3 id="listTitle">الإدارة العامة</h3><p>التصويت مغلق — النتائج النهائية متاحة للاستعراض.</p></div><div class="count" id="candidateCount">9 مرشحين</div></div>
 <div class="candidates" id="candidates"></div>
 <div class="actions"><button class="btn primary" id="voteBtn" disabled>تأكيد التصويت</button><button class="btn secondary" id="resultsBtn">عرض النتائج</button><div id="captcha-container" aria-live="polite"></div><span class="status" id="status" aria-live="polite">اختر أحد المرشحين للمتابعة.</span></div>
 <div class="results" id="results"></div>
@@ -168,6 +168,16 @@ async function loadCandidates() {
   $("status").textContent = "جاري تحميل أسماء المرشحين…";
   const department = departments.find(d => d.id === active);
   $("listTitle").textContent = department.name;
+
+  // وضع الإغلاق: إخفاء المرشحين وتعطيل التصويت مع إبقاء النتائج متاحة.
+  $("candidates").style.display = "none";
+  $("voteBtn").style.display = "none";
+  $("captcha-container").style.display = "none";
+  $("candidateCount").textContent = "التصويت مغلق";
+  $("status").textContent = "🔒 التصويت مغلق — يمكنك استعراض النتائج فقط.";
+  await showResults();
+  return;
+
   try {
     const { data, error } = await supabaseClient
       .from("candidates")
@@ -211,6 +221,7 @@ async function loadCandidates() {
 }
 
 $("voteBtn").addEventListener("click", async () => {
+  return; // التصويت مغلق من واجهة الموقع.
   if (!selected || loading) return;
   loading = true;
   $("voteBtn").disabled = true;
